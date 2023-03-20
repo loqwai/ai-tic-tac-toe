@@ -57,4 +57,8 @@ if __name__ == "__main__":
         position = int(input("Enter position: "))
         game.play(position)
     print(game)
-    print(f"Winner is {game.winner}")
+
+    if game.winner is '-':
+        print("It's a tie")
+    else:
+        print(f"Winner is {game.winner}")
