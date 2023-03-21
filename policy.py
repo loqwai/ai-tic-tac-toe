@@ -2,6 +2,7 @@ import numpy as np
 import torch.nn as nn
 import torch
 from torch.distributions.normal import Normal
+from gymnasium import spaces
 
 
 class Policy_Network(nn.Module):
@@ -74,7 +75,8 @@ class Reinforce:
         # Hyperparameters
         self.learning_rate = 1e-4  # Learning rate for policy optimization
         self.gamma = 0.99  # Discount factor
-        self.eps = 1e-6  # small number for mathematical stability
+        # self.epsilon = 1e-6  # small number for mathematical stability
+        self.epsilon = 1  # Using 1 so that all actions are randomly chosen
 
         self.probs = []  # Stores probability values of the sampled action
         self.rewards = []  # Stores the corresponding rewards
@@ -82,29 +84,25 @@ class Reinforce:
         self.net = Policy_Network(obs_space_dims, action_space_dims)
         self.optimizer = torch.optim.AdamW(self.net.parameters(), lr=self.learning_rate)
 
-    def sample_action(self, state: np.ndarray) -> float:
+    def choose_action(self, state: np.ndarray, action_space: spaces.Discrete) -> int:
         """Returns an action, conditioned on the policy and observation.
 
         Args:
-            state: Observation from the environment
+            state: Observation from the environment. Currently unused
+            action_space: space containing all actions. Some may not be available.
 
         Returns:
             action: Action to be performed
         """
-        state = torch.tensor(np.array([state]))
-        action_means, action_stddevs = self.net(state)
+        # Generate a random number between 0 and 1
+        explor_exploit_tradeoff = np.random.uniform(0, 1)
 
-        # create a normal distribution from the predicted
-        #   mean and standard deviation and sample an action
-        distrib = Normal(action_means[0] + self.eps, action_stddevs[0] + self.eps)
-        action = distrib.sample()
-        prob = distrib.log_prob(action)
+        # Exploration
+        if explor_exploit_tradeoff < self.epsilon:
+            return action_space.sample()
 
-        action = action.numpy()
-
-        self.probs.append(prob)
-
-        return action
+        # Exploitation (taking the biggest Q-value for this state)
+        raise Exception("Not implemented yet")
 
     def update(self):
         """Updates the policy network's weights."""
@@ -125,7 +123,7 @@ class Reinforce:
 
         # Update the policy network
         self.optimizer.zero_grad()
-        loss.backward()
+        # loss.backward() # This looks like a typo. loss is an int, so it has no backward method. usually, backward functions are called on tensors.
         self.optimizer.step()
 
         # Empty / zero out all episode-centric/related variables
