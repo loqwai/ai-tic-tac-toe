@@ -48,7 +48,7 @@ def make_epsilon_greedy_policy(Q: defaultdict[BoardTuple, Actions], epsilon: flo
     return policy_fn
 
 
-def q_learning(env: TicTacToeEnv, num_episodes: int, seed: int = 0, discount_factor: float = 1.0, alpha: float = 0.5, epsilon: float = 0.1):
+def q_learning(env: TicTacToeEnv, num_episodes: int, seed: int | None = None, discount_factor: float = 1.0, alpha: float = 0.5, epsilon: float = 0.1):
     """
     Q-Learning algorithm: Off-policy TD control. Finds the optimal greedy policy
     while following an epsilon-greedy policy
@@ -80,6 +80,7 @@ def q_learning(env: TicTacToeEnv, num_episodes: int, seed: int = 0, discount_fac
         # Reset the environment and pick the first action
         debug("============ episode =================")
         state, _ = env.reset(seed=seed)
+        rand = np.random.RandomState(seed=seed)
 
         # One step in the environment
         # total_reward = 0.0
@@ -88,7 +89,7 @@ def q_learning(env: TicTacToeEnv, num_episodes: int, seed: int = 0, discount_fac
             debug("------------ step -----------------")
             # Take a step
             action_probs = policy(state)
-            action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
+            action = rand.choice(np.arange(len(action_probs)), p=action_probs)
             next_state, reward, done, truncated, _ = env.step(action)
 
             # Update statistics
@@ -106,7 +107,8 @@ def q_learning(env: TicTacToeEnv, num_episodes: int, seed: int = 0, discount_fac
             debug("------------ end step -----------------")
             if done or truncated:
                 debug("game over")
-                debug("============ end episode =================\n")
+                debug(env.game)
+                debug("============ end episode =================")
                 break
 
             state = next_state
@@ -136,9 +138,10 @@ def count_second_moves(Q: defaultdict[BoardTuple, Actions]) -> int:
 
 if __name__ == "__main__":
     env = TicTacToeEnv()
-    Q, stats = q_learning(env, 40, 0)
+    Q, stats = q_learning(env, 10000, None, epsilon=0.01)
 
     print("number of unique states:", len(Q))
     print("longest episode", max(stats['episode_lengths']))
     print("highest reward", max(stats["episode_rewards"]))
     print("number of games won", sum([1 for x in stats["episode_rewards"] if x == 10]))
+    print("win ratio", sum([1 for x in stats["episode_rewards"] if x == 10]) / len(stats["episode_rewards"]))

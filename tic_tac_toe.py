@@ -10,6 +10,14 @@ BoardTuple = tuple[int, int, int, int, int, int, int, int, int]
 Board = npt.NDArray[np.int_]
 
 
+def board_to_string(board):
+    return f"""
+        {board[0]} | {board[1]} | {board[2]}
+        {board[3]} | {board[4]} | {board[5]}
+        {board[6]} | {board[7]} | {board[8]}
+    """
+
+
 class TicTacToe:
     def __init__(self):
         self._board = np.zeros(9, dtype=int)
@@ -18,11 +26,7 @@ class TicTacToe:
         self._game_over = False
 
     def __str__(self):
-        return f"""
-            {self._board[0]} | {self._board[1]} | {self._board[2]}
-            {self._board[3]} | {self._board[4]} | {self._board[5]}
-            {self._board[6]} | {self._board[7]} | {self._board[8]}
-        """
+        return board_to_string(self._board)
 
     def play(self, position: int):
         if self._game_over:
@@ -31,6 +35,7 @@ class TicTacToe:
             self._game_over = True
             return
         self._board[position] = self._current_player
+        self._stabilize_board()
         self._check_for_winner()
         self._switch_player()
 
@@ -43,6 +48,46 @@ class TicTacToe:
 
     def observe(self) -> Board:
         return self._board
+
+    def _stabilize_board(self) -> None:
+        """Rotates and flips the board to orient it consistently.
+
+        For example, a board with only an X in the top left is the same as a board with only an X any other corner.
+        """
+        self._board = np.asarray(min(self._symmetric_combinations()))
+
+    def _symmetric_combinations(self):
+        combinations = list()
+
+        board = [
+            [0, 0, 0],
+            [0, 0, 0],
+            [0, 0, 0],
+        ]
+
+        for y in range(3):
+            for x in range(3):
+                value = self._board[y * 3 + x]
+                board[y][x] = value
+
+        for _ in range(4):
+            board = np.rot90(board)
+            for _ in range(2):
+                board = np.flip(board, axis=0)
+                for _ in range(2):
+                    board = np.flip(board, axis=1)
+                    combinations.append(self._flatten(board))
+
+        return combinations
+
+    def _flatten(self, board):
+        flattened = []
+
+        for row in board:
+            for cell in row:
+                flattened.append(cell)
+
+        return tuple(flattened)
 
     def terminated(self):
         self._check_for_winner()
