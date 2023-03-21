@@ -1,9 +1,15 @@
+import os
 from typing import Any, Literal, Optional
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
 
 from tic_tac_toe import Board, TicTacToe
+
+
+def debug(*args: Any, **kwargs: Any) -> None:
+    if "DEBUG" in os.environ:
+        print(*args, **kwargs)
 
 
 class TicTacToeEnv(gym.Env):
@@ -40,12 +46,23 @@ class TicTacToeEnv(gym.Env):
 
         # If the action is invalid, the game is over
         observation = self.game.observe()
-        reward = 1 if self.game.winner() else 0
+        reward = self._reward()
         terminated = self.game.terminated()
         truncated = False  # This may get overwritted by gynmasium if the episode is too long (see max_episode_steps)
         info = {}
 
+        debug("action: ", action)
+        debug(self.game)
+        debug("reward: ", reward)
+
         return observation, reward, terminated, truncated, info
+
+    def _reward(self):
+        if self.game.winner():
+            return 10
+        if not self.game.terminated():
+            return 0
+        return -10
 
     def render(self) -> None:
         print(self.game)

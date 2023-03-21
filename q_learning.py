@@ -1,5 +1,6 @@
 from collections import defaultdict
 import itertools
+import os
 from typing import Any
 import gymnasium as gym
 from gymnasium.envs.registration import register
@@ -14,9 +15,13 @@ from tic_tac_toe_env import TicTacToeEnv
 
 # env = gym.make("TicTacToe-v0")
 
-env = TicTacToeEnv()
 
 Actions = npt.NDArray[np.int_]
+
+
+def debug(*args: Any, **kwargs: Any) -> None:
+    if "DEBUG" in os.environ:
+        print(*args, **kwargs)
 
 
 def make_epsilon_greedy_policy(Q: defaultdict[BoardTuple, Actions], epsilon: float, nA: np.int64):
@@ -39,10 +44,11 @@ def make_epsilon_greedy_policy(Q: defaultdict[BoardTuple, Actions], epsilon: flo
         best_action = np.argmax(Q[tuple(observation)])
         A[best_action] += (1.0 - epsilon)
         return A
+
     return policy_fn
 
 
-def q_learning(env: TicTacToeEnv, num_episodes: int, discount_factor: float = 1.0, alpha: float = 0.5, epsilon: float = 0.1):
+def q_learning(env: TicTacToeEnv, num_episodes: int, seed: int = 0, discount_factor: float = 1.0, alpha: float = 0.5, epsilon: float = 0.1):
     """
     Q-Learning algorithm: Off-policy TD control. Finds the optimal greedy policy
     while following an epsilon-greedy policy
@@ -62,7 +68,7 @@ def q_learning(env: TicTacToeEnv, num_episodes: int, discount_factor: float = 1.
 
     # The final action-value function.
     # A nested dictionary that maps state -> (action -> action-value).
-    Q: defaultdict[BoardTuple, Actions] = defaultdict(lambda: np.zeros(env.action_space.n, dtype=int))  # type: ignore
+    Q: defaultdict[BoardTuple, Actions] = defaultdict(lambda: np.zeros(env.action_space.n, dtype=float))  # type: ignore
 
     # Keeps track of useful statistics
     stats = {'episode_lengths': np.zeros(num_episodes), 'episode_rewards': np.zeros(num_episodes)}
@@ -72,12 +78,14 @@ def q_learning(env: TicTacToeEnv, num_episodes: int, discount_factor: float = 1.
 
     for i_episode in range(num_episodes):
         # Reset the environment and pick the first action
-        state, _ = env.reset()
+        debug("============ episode =================")
+        state, _ = env.reset(seed=seed)
 
         # One step in the environment
         # total_reward = 0.0
         for t in itertools.count():
 
+            debug("------------ step -----------------")
             # Take a step
             action_probs = policy(state)
             action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
@@ -95,7 +103,10 @@ def q_learning(env: TicTacToeEnv, num_episodes: int, discount_factor: float = 1.
             td_delta = td_target - Q[hashable_state][action]
             Q[hashable_state][action] += alpha * td_delta
 
+            debug("------------ end step -----------------")
             if done or truncated:
+                debug("game over")
+                debug("============ end episode =================\n")
                 break
 
             state = next_state
@@ -103,6 +114,31 @@ def q_learning(env: TicTacToeEnv, num_episodes: int, discount_factor: float = 1.
     return Q, stats
 
 
+def count_opening_moves(Q: defaultdict[BoardTuple, Actions]) -> int:
+    count = 0
+
+    for state in Q.keys():
+        if len([x for x in state if x != 0]) == 1:
+            count += 1
+
+    return count
+
+
+def count_second_moves(Q: defaultdict[BoardTuple, Actions]) -> int:
+    count = 0
+
+    for state in Q.keys():
+        if len([x for x in state if x != 0]) == 2:
+            count += 1
+
+    return count
+
+
 if __name__ == "__main__":
-    Q, stats = q_learning(env, 500)
-    print(stats)
+    env = TicTacToeEnv()
+    Q, stats = q_learning(env, 40, 0)
+
+    print("number of unique states:", len(Q))
+    print("longest episode", max(stats['episode_lengths']))
+    print("highest reward", max(stats["episode_rewards"]))
+    print("number of games won", sum([1 for x in stats["episode_rewards"] if x == 10]))
