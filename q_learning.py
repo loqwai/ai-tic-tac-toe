@@ -136,9 +136,42 @@ def count_second_moves(Q: defaultdict[BoardTuple, Actions]) -> int:
     return count
 
 
+def evaluate_performance(env, Q: defaultdict[BoardTuple, Actions], num_episodes: int, seed: int | None = None):
+    env = TicTacToeEnv()
+    stats = {'episode_lengths': np.zeros(num_episodes), 'episode_rewards': np.zeros(num_episodes)}
+
+    policy = make_epsilon_greedy_policy(Q, 0, env.action_space.n)
+
+    for i_episode in range(num_episodes):
+        # Reset the environment and pick the first action
+        state, _ = env.reset(seed=seed)
+        rand = np.random.RandomState(seed=seed)
+
+        # One step in the environment
+        # total_reward = 0.0
+        for t in itertools.count():
+
+            # Take a step
+            action_probs = policy(state)
+            action = rand.choice(np.arange(len(action_probs)), p=action_probs)
+            next_state, reward, done, truncated, _ = env.step(action)
+
+            # Update statistics
+            stats['episode_rewards'][i_episode] += reward
+            stats['episode_lengths'][i_episode] = t
+
+            if done or truncated:
+                break
+
+            state = next_state
+
+    return stats
+
+
 if __name__ == "__main__":
     env = TicTacToeEnv()
-    Q, stats = q_learning(env, 10000, None, epsilon=0.01)
+    Q, _ = q_learning(env, 10, None, epsilon=0.01)
+    stats = evaluate_performance(env, Q, 1000)
 
     print("number of unique states:", len(Q))
     print("longest episode", max(stats['episode_lengths']))
