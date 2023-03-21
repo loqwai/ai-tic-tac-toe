@@ -16,7 +16,7 @@ class TicTacToeEnv(gym.Env):
     metadata = {"render_modes": [None, "ansi"], "render_fps": 4}
     action_space: spaces.Discrete
 
-    def __init__(self, render_mode: Literal["ansi"] | None = None) -> None:
+    def __init__(self, render_mode: Literal["ansi"] | None = None, random_opponent: bool = False) -> None:
         super().__init__()
 
         # This should never fail if type checking is enabled
@@ -25,14 +25,18 @@ class TicTacToeEnv(gym.Env):
         # Initialize our game
         self.game = TicTacToe()
 
+        self.random_opponent = random_opponent
+
         # There are 9 cells with 3 possible states per cell: 0-2
         self.observation_space = spaces.MultiDiscrete(9 * [3])
 
         # There are 9 possible actions: 0-8
         self.action_space = spaces.Discrete(9)
+        self.random = np.random.RandomState()
 
     def reset(self, seed: Optional[int] = None, options: Any = None) -> tuple[Board, dict]:
         super().reset(seed=seed)
+        self.random = np.random.RandomState(seed=seed)
 
         self.game = TicTacToe()
 
@@ -44,7 +48,11 @@ class TicTacToeEnv(gym.Env):
     def step(self, action: int) -> tuple[Board, float, bool, bool, dict]:
         self.game.play(action)
 
-        # If the action is invalid, the game is over
+        if self.random_opponent and not self.game.terminated():
+            # If the game is not over, then we need to choose an action for the other player
+            valid_actions = self.game.list_valid_actions()
+            self.game.play(self.random.choice(valid_actions))
+
         observation = self.game.observe()
         reward = self._reward()
         terminated = self.game.terminated()
@@ -58,8 +66,10 @@ class TicTacToeEnv(gym.Env):
         return observation, reward, terminated, truncated, info
 
     def _reward(self):
-        if self.game.winner():
+        if self.game.winner() == 1:
             return 10
+        if self.game.winner() == 2:
+            return -20
         if not self.game.terminated():
             return 0
         return -10

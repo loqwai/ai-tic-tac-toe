@@ -39,10 +39,10 @@ class TicTacToe:
         self._check_for_winner()
         self._switch_player()
 
-    def list_valid_actions(self, player):
+    def list_valid_actions(self):
         valid_actions = []
         for i in range(9):
-            if self._board[i] is None:
+            if self._board[i] == 0:
                 valid_actions.append(i)
         return valid_actions
 
@@ -132,7 +132,7 @@ if __name__ == "__main__":
     while not game._game_over:
         print(game)
         print(f"Player {game._current_player}'s turn")
-        print("Valid actions: ", game.list_valid_actions(game._current_player))
+        print("Valid actions: ", game.list_valid_actions())
         position = int(input("Enter position: "))
         game.play(position)
     print(game)

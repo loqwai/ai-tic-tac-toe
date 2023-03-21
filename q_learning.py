@@ -2,18 +2,12 @@ from collections import defaultdict
 import itertools
 import os
 from typing import Any
-import gymnasium as gym
-from gymnasium.envs.registration import register
-from gymnasium import spaces
 import numpy as np
 import numpy.typing as npt
+from tqdm import tqdm
 
 from tic_tac_toe import Board, BoardTuple
 from tic_tac_toe_env import TicTacToeEnv
-
-# register("TicTacToe-v0", entry_point="tic_tac_toe_env:TicTacToeEnv", max_episode_steps=9)
-
-# env = gym.make("TicTacToe-v0")
 
 
 Actions = npt.NDArray[np.int_]
@@ -76,7 +70,7 @@ def q_learning(env: TicTacToeEnv, num_episodes: int, seed: int | None = None, di
     # The policy we're following
     policy = make_epsilon_greedy_policy(Q, epsilon, env.action_space.n)
 
-    for i_episode in range(num_episodes):
+    for i_episode in tqdm(range(num_episodes)):
         # Reset the environment and pick the first action
         debug("============ episode =================")
         state, _ = env.reset(seed=seed)
@@ -142,7 +136,7 @@ def evaluate_performance(env, Q: defaultdict[BoardTuple, Actions], num_episodes:
 
     policy = make_epsilon_greedy_policy(Q, 0, env.action_space.n)
 
-    for i_episode in range(num_episodes):
+    for i_episode in tqdm(range(num_episodes)):
         # Reset the environment and pick the first action
         state, _ = env.reset(seed=seed)
         rand = np.random.RandomState(seed=seed)
@@ -169,12 +163,16 @@ def evaluate_performance(env, Q: defaultdict[BoardTuple, Actions], num_episodes:
 
 
 if __name__ == "__main__":
-    env = TicTacToeEnv()
-    Q, _ = q_learning(env, 10, None, epsilon=0.01)
-    stats = evaluate_performance(env, Q, 1000)
+    env = TicTacToeEnv(random_opponent=False)
+    print("Training...")
+    Q, _ = q_learning(env, 10000, seed=None, epsilon=0.01)
+    print("Evaluating...")
+    stats = evaluate_performance(env, Q, num_episodes=1000, seed=None)
 
     print("number of unique states:", len(Q))
     print("longest episode", max(stats['episode_lengths']))
     print("highest reward", max(stats["episode_rewards"]))
     print("number of games won", sum([1 for x in stats["episode_rewards"] if x == 10]))
+    print("number of games losses", sum([1 for x in stats["episode_rewards"] if x == -20]))
+    print("number of games ending in an invalid move", sum([1 for x in stats["episode_rewards"] if x == -10]))
     print("win ratio", sum([1 for x in stats["episode_rewards"] if x == 10]) / len(stats["episode_rewards"]))
