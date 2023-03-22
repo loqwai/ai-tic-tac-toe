@@ -15,6 +15,7 @@ def debug(*args: Any, **kwargs: Any) -> None:
 class TicTacToeEnv(gym.Env):
     metadata = {"render_modes": [None, "ansi"], "render_fps": 4}
     action_space: spaces.Discrete
+    observation_space: spaces.Discrete
 
     def __init__(self, render_mode: Literal["ansi"] | None = None, random_opponent: bool = False) -> None:
         super().__init__()
@@ -27,8 +28,8 @@ class TicTacToeEnv(gym.Env):
 
         self.random_opponent = random_opponent
 
-        # There are 9 cells with 3 possible states per cell: 0-2
-        self.observation_space = spaces.MultiDiscrete(9 * [3])
+        # There are 765 possible states when symmetry is taken into account
+        self.observation_space = spaces.Discrete(765)
 
         # There are 9 possible actions: 0-8
         self.action_space = spaces.Discrete(9)
