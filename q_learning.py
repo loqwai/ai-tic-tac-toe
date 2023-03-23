@@ -43,18 +43,7 @@ def make_epsilon_greedy_policy(Q: defaultdict[BoardTuple, Actions], epsilon: flo
 
 
 def q_learning(env: TicTacToeEnv, num_episodes: int, seed: int | None = None, discount_factor: float = 1.0, alpha: float = 0.5, epsilon: float = 0.1):
-    """
-    Q-Learning algorithm: Off-policy TD control. Finds the optimal greedy policy
-    while following an epsilon-greedy policy
-
-    Args:
-        env: OpenAI environment.
-        num_episodes: Number of episodes to run for.
-        discount_factor: Gamma discount factor.
-        alpha: TD learning rate.
-        epsilon: Chance to sample a random action. Float between 0 and 1.
-
-    Returns:
+    """random_opponent
         A tuple (Q, episode_lengths).
         Q is the optimal action-value function, a dictionary mapping state -> action values.
         stats is an EpisodeStats object with two numpy arrays for episode_lengths and episode_rewards.
@@ -82,7 +71,7 @@ def q_learning(env: TicTacToeEnv, num_episodes: int, seed: int | None = None, di
 
             debug("------------ step -----------------")
             # Take a step
-            action_probs = policy(state)
+            action_probs = policy(np.asarray(state ))
             action = rand.choice(np.arange(len(action_probs)), p=action_probs)
             next_state, reward, done, truncated, _ = env.step(action)
 
@@ -131,7 +120,6 @@ def count_second_moves(Q: defaultdict[BoardTuple, Actions]) -> int:
 
 
 def evaluate_performance(env, Q: defaultdict[BoardTuple, Actions], num_episodes: int, seed: int | None = None):
-    env = TicTacToeEnv()
     stats = {'episode_lengths': np.zeros(num_episodes), 'episode_rewards': np.zeros(num_episodes)}
 
     policy = make_epsilon_greedy_policy(Q, 0, env.action_space.n)
@@ -152,7 +140,7 @@ def evaluate_performance(env, Q: defaultdict[BoardTuple, Actions], num_episodes:
 
             # Update statistics
             stats['episode_rewards'][i_episode] += reward
-            stats['episode_lengths'][i_episode] = t
+            stats['episode_lengths'][i_episode] += 1
 
             if done or truncated:
                 break
@@ -163,13 +151,14 @@ def evaluate_performance(env, Q: defaultdict[BoardTuple, Actions], num_episodes:
 
 
 if __name__ == "__main__":
-    env = TicTacToeEnv(random_opponent=False)
+    env = TicTacToeEnv(random_opponent=True)
     print("Training...")
     Q, _ = q_learning(env, 10000, seed=None, epsilon=0.01)
+    print("number of unique states identified during learning:", len(Q))
+
     print("Evaluating...")
     stats = evaluate_performance(env, Q, num_episodes=1000, seed=None)
 
-    print("number of unique states:", len(Q))
     print("longest episode", max(stats['episode_lengths']))
     print("highest reward", max(stats["episode_rewards"]))
     print("number of games won", sum([1 for x in stats["episode_rewards"] if x == 10]))
