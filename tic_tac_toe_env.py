@@ -12,15 +12,12 @@ def debug(*args: Any, **kwargs: Any) -> None:
         print(*args, **kwargs)
 
 
-BoardTuple = tuple[int, int, int, int, int, int, int, int, int]
-
-
 class TicTacToeEnv(gym.Env):
     metadata = {"render_modes": [None, "ansi"], "render_fps": 4}
     action_space: spaces.Discrete
     observation_space: spaces.Discrete
 
-    def __init__(self, render_mode: Literal["ansi"] | None = None, random_opponent: bool = False, seed: Optional[int] = None) -> None:
+    def __init__(self, render_mode: Literal["ansi"] | None = None, random_opponent: bool = False) -> None:
         super().__init__()
 
         # This should never fail if type checking is enabled
@@ -36,19 +33,20 @@ class TicTacToeEnv(gym.Env):
 
         # There are 9 possible actions: 0-8
         self.action_space = spaces.Discrete(9)
+        self.random = np.random.RandomState()
+
+    def reset(self, options: Any = None, seed: Optional[int] = None) -> tuple[Board, dict]:
+        super().reset(seed=seed)
+
         self.random = np.random.RandomState(seed=seed)
-
-    def reset(self, options: Any = None) -> tuple[BoardTuple, dict]:
-        super().reset()
-
         self.game = TicTacToe()
 
         observation = self.game.observe()
         info = {}  # Info is unused, but the gynmasium API expects reset() to return it
 
-        return tuple(observation), info
+        return observation, info
 
-    def step(self, action: int) -> tuple[BoardTuple, float, bool, bool, dict]:
+    def step(self, action: int) -> tuple[Board, float, bool, bool, dict]:
         self.game.play(action)
 
         if self.random_opponent and not self.game.terminated():
@@ -66,7 +64,7 @@ class TicTacToeEnv(gym.Env):
         debug(self.game)
         debug("reward: ", reward)
 
-        return tuple(observation), reward, terminated, truncated, info
+        return observation, reward, terminated, truncated, info
 
     def _reward(self):
         if self.game.winner() == 1:

@@ -6,9 +6,10 @@ from tqdm import tqdm
 from tic_tac_toe_env import TicTacToeEnv
 
 # env = gym.make('Blackjack-v1')
-seed = 0
+seed = 1
 gym.register("TicTacToe-v0", TicTacToeEnv)
-env = gym.make('TicTacToe-v0', random_opponent=True, seed=seed)
+# env = gym.make('TicTacToe-v0', random_opponent=True)
+env = gym.make("CartPole-v1", render_mode="human")
 torch.manual_seed(seed)
 
 # Q is a dictionary of state-action values
@@ -42,8 +43,10 @@ torch.manual_seed(seed)
 
 
 def run_episode(env, Q, epsilon, n_action):
-
-    state, _ = env.reset()
+    global seed
+    seed += 1
+    state_nd, _ = env.reset(seed=seed)
+    state = tuple(state_nd)
     rewards = []
     actions = []
     states = []
@@ -59,7 +62,8 @@ def run_episode(env, Q, epsilon, n_action):
         action = torch.multinomial(probs, 1).item()
         actions.append(action)
         states.append(state)
-        state, reward, is_done, is_truncated, info = env.step(action)
+        state_nd, reward, is_done, is_truncated, info = env.step(action)
+        state = tuple(state_nd)
         rewards.append(reward)
         if is_done or is_truncated:
             break
@@ -103,11 +107,13 @@ def mc_control_epsilon_greedy(env, gamma, n_episode, epsilon):
 
 
 def simulate_episode(env, policy) -> float:
-    state, _ = env.reset()
+    global seed
+    seed += 1
+    state, _ = env.reset(seed=seed)
     while True:
         if state not in policy:
             return 0
-        action = policy[state]
+        action = policy[tuple(state)]
         state, reward, is_done, is_truncated, info = env.step(action)
         if is_done or is_truncated:
             return reward
@@ -115,7 +121,7 @@ def simulate_episode(env, policy) -> float:
 
 gamma = 1
 n_episode = 10000
-epsilon = 0.9
+epsilon = 0.1
 
 optimal_Q, optimal_policy = mc_control_epsilon_greedy(env, gamma, n_episode, epsilon)
 
