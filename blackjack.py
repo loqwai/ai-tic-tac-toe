@@ -9,7 +9,7 @@ from tic_tac_toe_env import TicTacToeEnv
 seed = 1
 gym.register("TicTacToe-v0", TicTacToeEnv)
 # env = gym.make('TicTacToe-v0', random_opponent=True)
-env = gym.make("CartPole-v1", render_mode="human")
+env = gym.make("CartPole-v1")
 torch.manual_seed(seed)
 
 # Q is a dictionary of state-action values
@@ -131,6 +131,8 @@ n_win_optimal = 0
 n_loose_optimal = 0
 
 running_total = 0
+
+env = gym.make("CartPole-v1", render_mode="human")
 
 for _ in tqdm(range(n_episode)):
     reward = simulate_episode(env, optimal_policy)
